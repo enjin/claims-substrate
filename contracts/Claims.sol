@@ -30,7 +30,7 @@ contract Claims is Owned {
     mapping (bytes32 => uint) public saleAmounts;
 
     // A mapping of pubkeys => an array of ethereum addresses that have made a claim for this pubkey.
-    // - Used for getting the balance. 
+    // - Used for getting the balance.
     mapping (bytes32 => address[]) public claimsForPubkey;
 
     // Addresses that already claimed so we can easily grab them from state.
@@ -62,7 +62,7 @@ contract Claims is Owned {
 
         owner = _owner;
         allocationIndicator = FrozenToken(_allocations);
-        
+
         endSetUpDelay = block.number + _setUpDelay;
     }
 
@@ -200,7 +200,7 @@ contract Claims is Owned {
         not_claimed(_eth)
     {
         require(_pubKey != bytes32(0), "Failed to provide an Ed25519 or SR25519 public key.");
-        
+
         if (amended[_eth] != address(0x0)) {
             require(amended[_eth] == msg.sender, "Address is amended and sender is not the amendment.");
         } else {
@@ -222,7 +222,7 @@ contract Claims is Owned {
     /// @return uint The number of accounts that have claimed.
     function claimedLength()
         external view returns (uint)
-    {   
+    {
         return claimed.length;
     }
 

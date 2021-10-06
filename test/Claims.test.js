@@ -47,23 +47,6 @@ const findEventFromReceipt = (receipt, eventName) => (
   receipt.logs.find(log => log.event === eventName)
 );
 
-const deployGas = async (contract, name) => {
-  if (!NOISY) return;
-
-  const { transactionHash } = contract;
-  if (!transactionHash) {
-    throw new Error('Transaction hash not found on contract object');
-  }
-  const receipt = await web3.eth.getTransactionReceipt(transactionHash);
-  console.log(
-`
-${name}
-----------------
-Deploy Gas Used - ${receipt.gasUsed}
-`
-  );
-};
-
 const txGas = (tx, name) => {
   if (!NOISY) return;
 
@@ -94,7 +77,6 @@ contract('Claims', accounts => {
       owner,
     );
     expect(frozenToken.address).to.exist;
-    deployGas(frozenToken, 'Frozen Token');
 
     // Set up the token with a bunch of balances.
     let nSends = 5;
@@ -102,7 +84,7 @@ contract('Claims', accounts => {
 
       let i = 1;
       while (i < num+1) {
-        await frozenToken.transfer(accounts[i], 10000);
+        await frozenToken.transfer(accounts[i], 10000, { from: owner });
         i++;
       }
     }
@@ -115,7 +97,6 @@ contract('Claims', accounts => {
       '30',
     );
     expect(claims.address).to.exist;
-    deployGas(claims, 'Claims');
   });
 
   it('Allows assigning of the 0 index', async () => {
@@ -165,26 +146,26 @@ contract('Claims', accounts => {
   it('Allows owner to amend a new Ethereum address for a lost key', async () => {
     const amended = accounts[8];
     const orig = accounts[2];
-    const txResult = await claims.amend([orig], [amended]);
+    const txResult = await claims.amend([orig], [amended], { from: owner });
     expect(txResult.receipt).to.exist;
     const event = findEventFromReceipt(txResult.receipt, 'Amended');
     expect(event).to.exist;
     const { original, amendedTo } = event.args;
     expect(original).to.equal(orig);
     expect(amendedTo).to.equal(amended);
-    
+
     const amendedRes = await claims.amended(orig);
     expect(amendedRes).to.equal(amended);
   });
 
   it('Allows for owner to amend indefinitely', async () => {
     // Change it
-    await claims.amend([accounts[2]], [accounts[6]]);
+    await claims.amend([accounts[2]], [accounts[6]], { from: owner });
     const amended = await claims.amended(accounts[2]);
     expect(amended).to.equal(accounts[6]);
 
     // Change it back
-    await claims.amend([accounts[2]], [accounts[8]]);
+    await claims.amend([accounts[2]], [accounts[8]], { from: owner });
     const amendedBack = await claims.amended(accounts[2]);
     expect(amendedBack).to.equal(accounts[8]);
   });
@@ -238,7 +219,7 @@ contract('Claims', accounts => {
     expect(dot).to.equal(decoded);
     expect(idx.toString()).to.equal('1');
 
-    // Sanity 
+    // Sanity
     const nextIndex = await claims.nextIndex();
     expect(nextIndex.toString()).to.equal('2');
   });
@@ -255,21 +236,21 @@ contract('Claims', accounts => {
     expect(dot).to.equal(decoded);
     expect(idx.toString()).to.equal('0');
 
-    // Sanity 
+    // Sanity
     const nextIndex = await claims.nextIndex();
     expect(nextIndex.toString()).to.equal('2');
   });
 
   it('Invariant: Does not allow vesting to be set for a claimed address', async () => {
     await assertRevert(
-      claims.setVesting([accounts[1]], [1]),
+      claims.setVesting([accounts[1]], [1], { from: owner }),
       "Account must not be claimed"
     );
   });
 
   it('Invariant: Does not allow to amend an address that already claimed', async () => {
     await assertRevert(
-      claims.amend([accounts[1]], [accounts[7]]),
+      claims.amend([accounts[1]], [accounts[7]], { from: owner }),
       'Address has already claimed'
     );
   });
@@ -338,8 +319,8 @@ contract('Claims', accounts => {
   });
 
   it('Allows owner to set vesting on an unclaimed addresses', async () => {
-    const txResult = await claims.setVesting([accounts[2]], [1]);
-    
+    const txResult = await claims.setVesting([accounts[2]], [1], { from: owner });
+
     // Check for state change.
     const claim = await claims.claims(accounts[2]);
     expect(claim.vested.toString()).to.equal('1');
@@ -347,7 +328,7 @@ contract('Claims', accounts => {
 
   it('Invariant: Does not allow for vesting to be set twice', async () => {
     await assertRevert(
-      claims.setVesting([accounts[2]], [2]),
+      claims.setVesting([accounts[2]], [2], { from: owner }),
       'Account must not be vested already'
     );
   });
@@ -398,13 +379,13 @@ contract('Claims', accounts => {
   })
 
   it('Allows owner to increaseVesting on an already claimed address', async () => {
-    const claimData = await claims.claims(accounts[2]);
+    const claimData = await claims.claims(accounts[2], { from: owner });
     expect(claimData.vested.toString()).to.equal('1');
 
     const vestingTx = await claims.increaseVesting([accounts[2]], ['1'], { from: owner });
     expect(vestingTx.receipt).to.exist;
 
-    const claimDataAfter = await claims.claims(accounts[2]);
+    const claimDataAfter = await claims.claims(accounts[2], { from: owner });
     expect(claimDataAfter.vested.toString()).to.equal('2');
   });
 
@@ -426,13 +407,13 @@ contract('Claims', accounts => {
     expect(freezeTx.receipt).to.exist;
 
     // Sanity
-    const endSetUpDelay = await claims.endSetUpDelay();
+    const endSetUpDelay = await claims.endSetUpDelay({ from: owner });
     expect(endSetUpDelay.toString()).to.equal('115792089237316195423570985008687907853269984665640564039457584007913129639935');
   });
 
   it('Does not allow an -otherwise valid- claim to happen after being frozen', async () => {
     const pAddr = getPolkadotAddress('Hugo');
-    const decoded = decodeAddress(pAddr);
+    const decoded = u8aToHex(decodeAddress(pAddr));
 
     await assertRevert(
       claims.claim(accounts[4], decoded, { from: accounts[4] }),
