@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.3;
 
 import "./FrozenToken.sol";
@@ -55,7 +57,7 @@ contract Claims is Owned {
     // Event that triggers when a new sale injection is made.
     event InjectedSaleAmount(bytes32 indexed pubkey, uint newTotal);
 
-    constructor(address _owner, address payable _allocations, uint _setUpDelay) public {
+    constructor(address _owner, address payable _allocations, uint _setUpDelay) {
         require(_owner != address(0x0), "Must provide an owner address.");
         require(_allocations != address(0x0), "Must provide an allocations address.");
         require(_setUpDelay > 0, "Must provide a non-zero argument to _setUpDelay.");

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
+
 /**
  * Source Code first verified at https://etherscan.io on Wednesday, October 11, 2017
  (UTC) */
@@ -36,7 +38,6 @@ contract FrozenToken is Owned {
 
 	// constructor sets the parameters of execution, _totalSupply is all units
 	constructor(uint _totalSupply, address _owner)
-        public
 		when_non_zero(_totalSupply)
 	{
 		totalSupply = _totalSupply;
@@ -76,6 +77,10 @@ contract FrozenToken is Owned {
 
 	// no default function, simple contract only, entry-level users
 	fallback() external payable {
+		assert(false);
+	}
+
+	receive() external payable {
 		assert(false);
 	}
 
