@@ -1,4 +1,4 @@
-pragma solidity 0.5.13;
+pragma solidity 0.8.3;
 
 import "./FrozenToken.sol";
 
@@ -55,7 +55,7 @@ contract Claims is Owned {
     // Event that triggers when a new sale injection is made.
     event InjectedSaleAmount(bytes32 indexed pubkey, uint newTotal);
 
-    constructor(address _owner, address _allocations, uint _setUpDelay) public {
+    constructor(address _owner, address payable _allocations, uint _setUpDelay) public {
         require(_owner != address(0x0), "Must provide an owner address.");
         require(_allocations != address(0x0), "Must provide an allocations address.");
         require(_setUpDelay > 0, "Must provide a non-zero argument to _setUpDelay.");
@@ -121,7 +121,10 @@ contract Claims is Owned {
             // Does not require that vesting has already been set or not.
             require(_vestingAmts[i] > 0, "Vesting amount must be greater than zero.");
             uint oldVesting = claimData.vested;
-            uint newVesting = oldVesting + _vestingAmts[i];
+            uint newVesting;
+            unchecked {
+                newVesting = oldVesting + _vestingAmts[i];
+            }
             // Check for overflow.
             require(newVesting > oldVesting, "Overflow in addition.");
             claimData.vested = newVesting;
@@ -178,7 +181,6 @@ contract Claims is Owned {
     /// Allows anyone to assign a batch of indices onto unassigned and unclaimed allocations.
     /// @dev This function is safe because all the necessary checks are made on `assignNextIndex`.
     /// @param _eths An array of allocation addresses to assign indices for.
-    /// @return bool True is successful.
     function assignIndices(address[] calldata _eths)
         external
         protected_during_delay
@@ -192,7 +194,6 @@ contract Claims is Owned {
     /// @dev Can only be called by the `_eth` address or the amended address for the allocation.
     /// @param _eth The allocation address to claim.
     /// @param _pubKey The Polkadot public key to claim.
-    /// @return True if successful.
     function claim(address _eth, bytes32 _pubKey)
         external
         after_set_up_delay

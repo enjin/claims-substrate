@@ -6,7 +6,7 @@
 //! By Parity Technologies, 2017.
 //! Released under the Apache Licence 2.
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.3;
 
 // Owned contract.
 contract Owned {
@@ -75,7 +75,7 @@ contract FrozenToken is Owned {
 	}
 
 	// no default function, simple contract only, entry-level users
-	function() external {
+	fallback() external payable {
 		assert(false);
 	}
 
