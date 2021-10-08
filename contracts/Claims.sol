@@ -2,12 +2,14 @@
 
 pragma solidity 0.8.3;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./FrozenToken.sol";
 
 /// @author Web3 Foundation
 /// @title  Claims
 ///         Allows allocations to be claimed to Polkadot public keys.
-contract Claims is Owned {
+contract Claims is Ownable {
     // The maximum number contained by the type `uint`. Used to freeze the contract from claims.
     uint256 public constant UINT_MAX = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
 
@@ -19,7 +21,7 @@ contract Claims is Owned {
     }
 
     // The address of the allocation indicator contract.
-    FrozenToken public allocationIndicator; // 0xb59f67A8BfF5d8Cd03f6AC17265c550Ed8F33907
+    IERC20 public allocationIndicator;
 
     // The next index to be assigned.
     uint256 public nextIndex;
@@ -65,8 +67,8 @@ contract Claims is Owned {
         require(_allocations != address(0x0), "Must provide an allocations address.");
         require(_setUpDelay > 0, "Must provide a non-zero argument to _setUpDelay.");
 
-        owner = _owner;
-        allocationIndicator = FrozenToken(_allocations);
+        transferOwnership(_owner);
+        allocationIndicator = IERC20(_allocations);
 
         endSetUpDelay = block.number + _setUpDelay;
     }
@@ -261,7 +263,7 @@ contract Claims is Owned {
     modifier onlyDuringSetUpDelay() {
         if (block.number < endSetUpDelay) {
             require(
-                msg.sender == owner,
+                msg.sender == owner(),
                 "Only owner is allowed to call this function before the end of the set up delay."
             );
         }

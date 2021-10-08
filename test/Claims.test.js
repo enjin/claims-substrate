@@ -176,11 +176,11 @@ contract('Claims', accounts => {
   it('Invariant: Does not allow anyone besides owner to amend', async () => {
     await assertRevert(
       claims.amend([accounts[1]], [accounts[5]], { from: accounts[7] }),
-      'Only owner',
+      'Ownable: caller is not the owner',
     );
     await assertRevert(
       claims.amend([accounts[1]], [accounts[5]], { from: accounts[9] }),
-      'Only owner',
+      'Ownable: caller is not the owner',
     );
   });
 
@@ -403,7 +403,7 @@ contract('Claims', accounts => {
   it('Invariant: Only allows owner to freeze the contract', async () => {
     await assertRevert(
       claims.freeze({ from: accounts[9] }),
-      'Only owner',
+      'Ownable: caller is not the owner',
     );
 
     const freezeTx = await claims.freeze({ from: owner });
@@ -474,9 +474,9 @@ contract('Claims', accounts => {
     const pAddr = getPolkadotAddress('Elizabeth Holmes');
     const pubkey = u8aToHex(decodeAddress(pAddr));
 
-    assertRevert(
+    await assertRevert(
       claims.injectSaleAmount([pubkey], ['12345'], { from: accounts[5] }),
-      'Only owner',
+      'Ownable: caller is not the owner',
     );
   });
 
