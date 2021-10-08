@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-expressions */
+
 const Claims = artifacts.require('Claims');
 const FrozenToken = artifacts.require('FrozenToken');
 
@@ -12,32 +14,35 @@ const NOISY = false;
 
 const mineUntil = async (number) => {
   while ((await web3.eth.getBlockNumber()) < number) {
-    await new Promise(resolve => {
+    await new Promise((resolve, reject) => {
       web3.currentProvider.send({
-        jsonrpc: "2.0",
-        method: "evm_mine",
+        jsonrpc: '2.0',
+        method: 'evm_mine',
         params: [],
         id: new Date().getTime(),
       }, (err, res) => {
+        if (err) {
+          return reject(err);
+        }
         return resolve(res);
       });
-    })
+    });
   }
-}
+};
 
 const assertRevert = async (transaction, expectedErr) => {
   try {
-    const res = await transaction
-    assert(!res, "Transaction did not revert like expected");
+    const res = await transaction;
+    assert(!res, 'Transaction did not revert like expected');
   } catch (e) {
     const errString = e.toString();
     assert(
-      errString.indexOf('VM Exception while processing transaction: revert') !== -1
+      errString.indexOf('VM Exception while processing transaction: revert') !== -1,
     );
     if (expectedErr) {
       assert(
         errString.indexOf(expectedErr) !== -1,
-        "Expected error string NOT FOUND"
+        'Expected error string NOT FOUND',
       );
     }
   }
@@ -51,11 +56,11 @@ const txGas = (tx, name) => {
   if (!NOISY) return;
 
   console.log(
-`
+    `
 ${name}
 ---------------
 Tx Gas - ${tx.receipt.gasUsed}
-`
+`,
   );
 };
 
@@ -67,8 +72,7 @@ const getPolkadotAddress = (seed) => {
 };
 
 contract('Claims', accounts => {
-
-  let owner = accounts[0];
+  const owner = accounts[0];
   let claims, frozenToken;
 
   before(async () => {
@@ -79,15 +83,14 @@ contract('Claims', accounts => {
     expect(frozenToken.address).to.exist;
 
     // Set up the token with a bunch of balances.
-    let nSends = 5;
+    const nSends = 5;
     const makeSends = async (num) => {
-
       let i = 1;
-      while (i < num+1) {
+      while (i < num + 1) {
         await frozenToken.transfer(accounts[i], 10000, { from: owner });
         i++;
       }
-    }
+    };
 
     await makeSends(nSends);
 
@@ -173,11 +176,11 @@ contract('Claims', accounts => {
   it('Invariant: Does not allow anyone besides owner to amend', async () => {
     await assertRevert(
       claims.amend([accounts[1]], [accounts[5]], { from: accounts[7] }),
-      "Only owner"
+      'Only owner',
     );
     await assertRevert(
       claims.amend([accounts[1]], [accounts[5]], { from: accounts[9] }),
-      "Only owner"
+      'Only owner',
     );
   });
 
@@ -203,7 +206,7 @@ contract('Claims', accounts => {
     const decoded = u8aToHex(decodeAddress(pAddr));
     await assertRevert(
       claims.claim(accounts[1], decoded, { from: accounts[0] }),
-      "Sender is not the allocation address"
+      'Sender is not the allocation address',
     );
   });
 
@@ -244,14 +247,14 @@ contract('Claims', accounts => {
   it('Invariant: Does not allow vesting to be set for a claimed address', async () => {
     await assertRevert(
       claims.setVesting([accounts[1]], [1], { from: owner }),
-      "Account must not be claimed"
+      'Account must not be claimed',
     );
   });
 
   it('Invariant: Does not allow to amend an address that already claimed', async () => {
     await assertRevert(
       claims.amend([accounts[1]], [accounts[7]], { from: owner }),
-      'Address has already claimed'
+      'Address has already claimed',
     );
   });
 
@@ -260,7 +263,7 @@ contract('Claims', accounts => {
     const decoded = u8aToHex(decodeAddress(pAddr));
     await assertRevert(
       claims.claim(accounts[1], decoded, { from: accounts[1] }),
-      'Account has already claimed'
+      'Account has already claimed',
     );
   });
 
@@ -275,7 +278,7 @@ contract('Claims', accounts => {
     // Did nextIndex increment?
     const nextIndexAfter = await claims.nextIndex();
     expect(
-      nextIndexAfter.toString()
+      nextIndexAfter.toString(),
     ).to.equal('3');
 
     // Did IndexAssigned get propagated? With the expected values?
@@ -289,22 +292,22 @@ contract('Claims', accounts => {
   it('Invariant: Does not allow an index to be assigned to non-allocation account', async () => {
     // Sanity
     const nextIndex = await claims.nextIndex();
-    expect(nextIndex.toString()).to.equal('3')
+    expect(nextIndex.toString()).to.equal('3');
 
     await assertRevert(
       claims.assignIndices([accounts[8]]),
-      'Ethereum address has no DOT allocation'
+      'Ethereum address has no DOT allocation',
     );
 
     // Sanity After
     const nextIndexAfter = await claims.nextIndex();
-    expect(nextIndexAfter.toString()).to.equal('3')
+    expect(nextIndexAfter.toString()).to.equal('3');
   });
 
   it('Invariant: Does not allow the reassignment of an index', async () => {
     await assertRevert(
       claims.assignIndices([accounts[2]]),
-      'Cannot reassign an index'
+      'Cannot reassign an index',
     );
   });
 
@@ -314,12 +317,12 @@ contract('Claims', accounts => {
 
     await assertRevert(
       claims.claim(accounts[2], decoded, { from: accounts[6] }),
-      'Address is amended and sender is not the amendment'
+      'Address is amended and sender is not the amendment',
     );
   });
 
   it('Allows owner to set vesting on an unclaimed addresses', async () => {
-    const txResult = await claims.setVesting([accounts[2]], [1], { from: owner });
+    await claims.setVesting([accounts[2]], [1], { from: owner });
 
     // Check for state change.
     const claim = await claims.claims(accounts[2]);
@@ -329,7 +332,7 @@ contract('Claims', accounts => {
   it('Invariant: Does not allow for vesting to be set twice', async () => {
     await assertRevert(
       claims.setVesting([accounts[2]], [2], { from: owner }),
-      'Account must not be vested already'
+      'Account must not be vested already',
     );
   });
 
@@ -376,7 +379,7 @@ contract('Claims', accounts => {
     expect(firstClaim).to.equal(accounts[2]);
     const secondClaim = await claims.claimsForPubkey(pubkey, 1);
     expect(secondClaim).to.equal(accounts[5]);
-  })
+  });
 
   it('Allows owner to increaseVesting on an already claimed address', async () => {
     const claimData = await claims.claims(accounts[2], { from: owner });
@@ -393,14 +396,14 @@ contract('Claims', accounts => {
     const uintMax = await claims.UINT_MAX();
     await assertRevert(
       claims.increaseVesting([accounts[2]], [uintMax.toString()], { from: owner }),
-      "Overflow in addition."
-    )
+      'Overflow in addition.',
+    );
   });
 
   it('Invariant: Only allows owner to freeze the contract', async () => {
     await assertRevert(
       claims.freeze({ from: accounts[9] }),
-      "Only owner"
+      'Only owner',
     );
 
     const freezeTx = await claims.freeze({ from: owner });
@@ -408,7 +411,9 @@ contract('Claims', accounts => {
 
     // Sanity
     const endSetUpDelay = await claims.endSetUpDelay({ from: owner });
-    expect(endSetUpDelay.toString()).to.equal('115792089237316195423570985008687907853269984665640564039457584007913129639935');
+    expect(endSetUpDelay.toString()).to.equal(
+      '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+    );
   });
 
   it('Does not allow an -otherwise valid- claim to happen after being frozen', async () => {
@@ -417,7 +422,7 @@ contract('Claims', accounts => {
 
     await assertRevert(
       claims.claim(accounts[4], decoded, { from: accounts[4] }),
-      "This function is only evocable after the setUpDelay has elapsed."
+      'This function is only evocable after the setUpDelay has elapsed.',
     );
   });
 
@@ -425,7 +430,7 @@ contract('Claims', accounts => {
     const claimed0 = await claims.claimed(0);
     expect(claimed0).to.equal(accounts[3]);
     const claimData0 = await claims.claims(claimed0);
-    let { index, pubKey, vested } = claimData0;
+    const { index, pubKey, vested } = claimData0;
     expect(index.toString()).to.equal('1');
     expect(pubKey).to.equal(u8aToHex(decodeAddress(getPolkadotAddress('Alice'))));
     expect(vested.toString()).to.equal('0');
@@ -483,7 +488,7 @@ contract('Claims', accounts => {
     expect(balBefore.toString()).to.equal('0');
 
     const res = await claims.injectSaleAmount(
-      [pubkey,pubkey,pubkey],
+      [pubkey, pubkey, pubkey],
       ['12', '24', '36'],
       { from: accounts[0] },
     );
@@ -494,7 +499,7 @@ contract('Claims', accounts => {
 
     // Do it again for redundancy.
     const resAgain = await claims.injectSaleAmount(
-      [pubkey,pubkey],
+      [pubkey, pubkey],
       ['12', '24'],
       { from: accounts[0] },
     );

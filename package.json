@@ -7,8 +7,21 @@
     "@polkadot/keyring": "^0.90.1",
     "@polkadot/util": "^0.90.1",
     "chai": "^4.2.0",
+    "eslint": "^6.5.1",
+    "eslint-config-standard": "^14.1.1",
+    "eslint-plugin-import": "^2.20.0",
+    "eslint-plugin-mocha-no-only": "^1.1.0",
+    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
     "hardhat": "^2.0.6",
     "hardhat-gas-reporter": "^1.0.4",
+    "micromatch": "^4.0.2",
+    "prettier": "^2.3.0",
+    "prettier-plugin-solidity": "^1.0.0-beta.16",
+    "rimraf": "^3.0.2",
+    "solhint": "^3.3.6",
+    "solidity-ast": "^0.4.25",
     "solidity-coverage": "^0.7.11",
     "truffle": "^5.0.18",
     "web3": "^1.3.0",
@@ -22,6 +35,12 @@
   },
   "scripts": {
     "compile": "hardhat compile",
+    "lint": "npm run lint:js && npm run lint:sol",
+    "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
+    "lint:js": "eslint --ignore-path .gitignore .",
+    "lint:js:fix": "eslint --ignore-path .gitignore . --fix",
+    "lint:sol": "solhint 'contracts/**/*.sol' && prettier -c 'contracts/**/*.sol'",
+    "lint:sol:fix": "prettier --write \"contracts/**/*.sol\"",
     "test": "hardhat test"
   },
   "repository": {
@@ -33,5 +52,8 @@
   "bugs": {
     "url": "https://github.com/enjin/claims-substrate/issues"
   },
-  "homepage": "https://github.com/enjin/claims-substrate#readme"
+  "homepage": "https://github.com/enjin/claims-substrate#readme",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.3.2"
+  }
 }
