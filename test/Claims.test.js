@@ -396,7 +396,6 @@ contract('Claims', accounts => {
     const uintMax = await claims.UINT_MAX();
     await assertRevert(
       claims.increaseVesting([accounts[2]], [uintMax.toString()], { from: owner }),
-      'Overflow in addition.',
     );
   });
 

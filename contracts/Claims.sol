@@ -4,7 +4,6 @@ pragma solidity 0.8.3;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./FrozenToken.sol";
 
 /// @author Web3 Foundation
 /// @title  Claims
@@ -117,11 +116,7 @@ contract Claims is Ownable {
             require(_vestingAmts[i] > 0, "Vesting amount must be greater than zero.");
             uint256 oldVesting = claimData.vested;
             uint256 newVesting;
-            unchecked {
-                newVesting = oldVesting + _vestingAmts[i];
-            }
-            // Check for overflow.
-            require(newVesting > oldVesting, "Overflow in addition.");
+            newVesting = oldVesting + _vestingAmts[i];
             claimData.vested = newVesting;
             emit VestedIncreased(_eths[i], newVesting);
         }
@@ -142,8 +137,6 @@ contract Claims is Ownable {
 
             uint256 oldValue = saleAmounts[pubkey];
             uint256 newValue = oldValue + amount;
-            // Check for overflow.
-            require(newValue > oldValue, "Overflow in addition");
             saleAmounts[pubkey] = newValue;
 
             emit InjectedSaleAmount(pubkey, newValue);
