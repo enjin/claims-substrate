@@ -22,7 +22,7 @@ contract Allocations is Ownable {
     uint256 private _freezeDelay;
 
     // Event for when an allocation address amendment is made.
-    event Allocated(address indexed operator, address indexed to, uint256 amount, uint256 newTotal);
+    event Deposited(address indexed operator, address indexed to, uint256 amount, uint256 newTotal);
 
     // Event for when an allocation address amendment is made.
     event Withdraw(address indexed from, address indexed to, uint256 amount, uint256 newTotal);
@@ -43,12 +43,12 @@ contract Allocations is Ownable {
     /// @dev The given arrays must be same length and index must map directly.
     /// @param recipient An array of original (allocation) addresses.
     /// @param amount An array of the new addresses which can claim those allocations.
-    function allocate(address recipient, uint256 amount) external ifNotFreeze {
+    function deposit(address recipient, uint256 amount) external ifNotFreeze {
         address sender = _msgSender();
         _token.transferFrom(sender, address(this), amount);
         uint256 newBalance = _balances[recipient] + amount;
         _balances[recipient] = newBalance;
-        emit Allocated(sender, recipient, amount, newBalance);
+        emit Deposited(sender, recipient, amount, newBalance);
     }
 
     /// Allows owner to withdraw its funds before freeze

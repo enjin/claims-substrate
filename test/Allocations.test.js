@@ -70,12 +70,12 @@ contract('Allocations', function (accounts) {
       const amount = new BN(123);
       await this.token.transfer(accountA, amount, { from: initialHolder });
       await this.token.approve(this.allocations.address, MAX_UINT256, { from: accountA });
-      await this.allocations.allocate(accountA, amount, { from: accountA });
+      await this.allocations.deposit(accountA, amount, { from: accountA });
       expect(await this.allocations.balanceOf(accountA)).to.be.bignumber.equal(amount);
       expect(await this.allocations.balanceOf(accountB)).to.be.bignumber.equal(new BN(0));
     });
 
-    describe('#allocate', function () {
+    describe('#deposit', function () {
       beforeEach(async function () {
         await this.token.transfer(accountA, '100', { from: initialHolder });
         await this.token.approve(this.allocations.address, MAX_UINT256, { from: accountA });
@@ -85,7 +85,7 @@ contract('Allocations', function (accounts) {
 
       it('can allocate tokens', async function () {
         const amount = new BN(50);
-        const receipt = await this.allocations.allocate(accountA, amount, { from: accountA });
+        const receipt = await this.allocations.deposit(accountA, amount, { from: accountA });
 
         await expectEvent.inTransaction(
           receipt.tx,
@@ -96,7 +96,7 @@ contract('Allocations', function (accounts) {
         await expectEvent.inTransaction(
           receipt.tx,
           this.allocations,
-          'Allocated',
+          'Deposited',
           { operator: accountA, to: accountA, amount, newTotal: amount },
         );
       });
@@ -106,7 +106,7 @@ contract('Allocations', function (accounts) {
         await time.advanceBlockTo(targetBlock);
 
         await expectRevert(
-          this.allocations.allocate(accountA, '100', { from: accountA }),
+          this.allocations.deposit(accountA, '100', { from: accountA }),
           'Allocations: this contract is frozen, method not allowed',
         );
       });
@@ -116,7 +116,7 @@ contract('Allocations', function (accounts) {
       beforeEach(async function () {
         await this.token.transfer(accountA, '100', { from: initialHolder });
         await this.token.approve(this.allocations.address, MAX_UINT256, { from: accountA });
-        await this.allocations.allocate(accountA, '100', { from: accountA });
+        await this.allocations.deposit(accountA, '100', { from: accountA });
       });
 
       it('can withdraw tokens', async function () {
