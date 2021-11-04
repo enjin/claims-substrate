@@ -27,7 +27,6 @@ contract('Allocations', function (accounts) {
       const allocations = await Allocations.new();
       const receipt = await allocations.Allocations_init(token.address, freezeDelay, { from: owner });
 
-
       expect(await allocations.freezeDelay()).to.be.bignumber.equal(freezeDelay);
 
       await expectEvent(

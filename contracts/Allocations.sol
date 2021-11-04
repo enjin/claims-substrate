@@ -30,16 +30,19 @@ contract Allocations is Initializable, OwnableUpgradeable {
     // Event for when an allocation address withdraws.
     event Withdrew(address indexed from, address indexed to, uint256 amount, uint256 newTotal);
 
+    // solhint-disable-next-line func-name-mixedcase
     function Allocations_init(address token, uint256 freezeDelay_) external initializer {
         __Allocations_init(token, freezeDelay_);
     }
 
+    // solhint-disable-next-line func-name-mixedcase
     function __Allocations_init(address token, uint256 freezeDelay_) internal initializer {
         __Context_init_unchained();
         __Ownable_init_unchained();
         __Allocations_init_unchained(token, freezeDelay_);
     }
 
+    // solhint-disable-next-line func-name-mixedcase
     function __Allocations_init_unchained(address token, uint256 freezeDelay_) internal initializer {
         require(token.isContract(), "Allocations: Must be an ERC20 contract");
         require(freezeDelay_ > block.number, "Allocations: freezeDelay must be greater than the current block.number");
@@ -52,10 +55,9 @@ contract Allocations is Initializable, OwnableUpgradeable {
         return _freezeDelay;
     }
 
-    /// Allows owner to manually amend allocations to a new address that can claim.
-    /// @dev The given arrays must be same length and index must map directly.
-    /// @param recipient An array of original (allocation) addresses.
-    /// @param amount An array of the new addresses which can claim those allocations.
+    /// Allows sender to deposit _token to _recipient account, the sender must approve this contract
+    /// @param recipient account which will receive the deposit
+    /// @param amount amount of tokens deposited
     function deposit(address recipient, uint256 amount) external ifNotFreeze {
         require(amount > 0, "Allocations: deposit amount must be greater than zero");
 

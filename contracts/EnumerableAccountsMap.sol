@@ -5,7 +5,7 @@ pragma solidity ^0.8.3;
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
 /**
- * @dev Library for managing an enumerable accounts map
+ * @dev Library for managing an upgradeable enumerable map of accounts
  *
  * Maps have the following properties:
  *
@@ -28,7 +28,7 @@ library EnumerableAccountsMap {
 
     struct Account {
         uint256 balance; // current balance
-        bytes32 pubkey;  // x25519 public key.
+        bytes32 pubkey; // x25519 public key.
         uint256[10] __gap;
     }
 
