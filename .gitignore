@@ -31,9 +31,6 @@ npm-debug.log
 
 # truffle build directory
 build/
-contracts/test
-start_geth
-pw
 
 # macOS
 .DS_Store
