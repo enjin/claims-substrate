@@ -6,7 +6,7 @@ const ERC20Mock = artifacts.require('ERC20Mock');
 const Allocations = artifacts.require('Allocations');
 
 contract('Allocations', function (accounts) {
-  const [ owner, initialHolder, accountA, accountB ] = accounts;
+  const [ owner, initialHolder, accountA, accountB, accountC ] = accounts;
 
   // ERC20
   const name = 'My Token';
@@ -110,20 +110,70 @@ contract('Allocations', function (accounts) {
       });
 
       it('can allocate tokens', async function () {
-        const amount = new BN(50);
-        const receipt = await this.allocations.deposit(accountA, amount, { from: accountA });
+        const firstDeposit = new BN(50);
+        let receipt = await this.allocations.deposit(accountA, firstDeposit, { from: accountA });
 
         await expectEvent.inTransaction(
           receipt.tx,
           this.token,
           'Transfer',
-          { from: accountA, to: this.allocations.address, value: amount },
+          { from: accountA, to: this.allocations.address, value: firstDeposit },
         );
         await expectEvent.inTransaction(
           receipt.tx,
           this.allocations,
           'Deposited',
-          { from: accountA, to: accountA, value: amount, remainingBalance: amount },
+          { from: accountA, to: accountA, value: firstDeposit, remainingBalance: firstDeposit },
+        );
+
+        const secondDeposit = new BN(20);
+        receipt = await this.allocations.deposit(accountA, secondDeposit, { from: accountA });
+
+        await expectEvent.inTransaction(
+          receipt.tx,
+          this.token,
+          'Transfer',
+          { from: accountA, to: this.allocations.address, value: secondDeposit },
+        );
+        await expectEvent.inTransaction(
+          receipt.tx,
+          this.allocations,
+          'Deposited',
+          { from: accountA, to: accountA, value: secondDeposit, remainingBalance: firstDeposit.add(secondDeposit) },
+        );
+      });
+
+      it('can allocate tokens to a different account', async function () {
+        const firstDeposit = new BN(50);
+        let receipt = await this.allocations.deposit(accountC, firstDeposit, { from: accountA });
+
+        await expectEvent.inTransaction(
+          receipt.tx,
+          this.token,
+          'Transfer',
+          { from: accountA, to: this.allocations.address, value: firstDeposit },
+        );
+        await expectEvent.inTransaction(
+          receipt.tx,
+          this.allocations,
+          'Deposited',
+          { from: accountA, to: accountC, value: firstDeposit, remainingBalance: firstDeposit },
+        );
+
+        const secondDeposit = new BN(20);
+        receipt = await this.allocations.deposit(accountC, secondDeposit, { from: accountB });
+
+        await expectEvent.inTransaction(
+          receipt.tx,
+          this.token,
+          'Transfer',
+          { from: accountB, to: this.allocations.address, value: secondDeposit },
+        );
+        await expectEvent.inTransaction(
+          receipt.tx,
+          this.allocations,
+          'Deposited',
+          { from: accountB, to: accountC, value: secondDeposit, remainingBalance: firstDeposit.add(secondDeposit) },
         );
       });
 
@@ -136,49 +186,101 @@ contract('Allocations', function (accounts) {
           'Allocations: this contract is frozen, method not allowed',
         );
       });
+
+      it('cannot deposit zero tokens', async function () {
+        await expectRevert(
+          this.allocations.deposit(this.token.address, '0', { from: accountA }),
+          'Allocations: deposit amount must be greater than zero',
+        );
+      });
+
+      it('cannot deposit to contract address', async function () {
+        await expectRevert(
+          this.allocations.deposit(this.token.address, '100', { from: accountA }),
+          'Allocations: the recipient must be an EOA account',
+        );
+      });
     });
 
     describe('#withdraw', function () {
       beforeEach(async function () {
         await this.token.transfer(accountA, '100', { from: initialHolder });
-        await this.token.approve(this.allocations.address, MAX_UINT256, { from: accountA });
-        await this.allocations.deposit(accountA, '100', { from: accountA });
       });
 
       it('can withdraw tokens', async function () {
-        const amount = new BN(100);
+        const depositAmount = new BN(100);
+        const firstWithdraw = new BN(99);
+        const secondWithdraw = new BN(1);
+
+        // deposit
+        await this.token.approve(this.allocations.address, MAX_UINT256, { from: accountA });
+        await this.allocations.deposit(accountA, depositAmount, { from: accountA });
 
         // Sanity
-        expect(await this.token.balanceOf(this.allocations.address)).to.be.bignumber.equal(amount);
-        expect(await this.allocations.balanceOf(accountA)).to.be.bignumber.equal(amount);
+        expect(await this.token.balanceOf(this.allocations.address)).to.be.bignumber.equal(depositAmount);
+        expect(await this.allocations.balanceOf(accountA)).to.be.bignumber.equal(depositAmount);
+        expect(await this.allocations.accountsCount()).to.be.bignumber.equal('1');
 
-        const receipt = await this.allocations.withdraw(accountA, amount, { from: accountA });
-
-        expect(await this.token.balanceOf(this.allocations.address)).to.be.bignumber.equal(new BN(0));
-        expect(await this.token.balanceOf(accountA)).to.be.bignumber.equal(amount);
+        // first withdraw
+        let receipt = await this.allocations.withdraw(accountA, firstWithdraw, { from: accountA });
+        expect(
+          await this.token.balanceOf(this.allocations.address),
+        ).to.be.bignumber.equal(depositAmount.sub(firstWithdraw));
+        expect(await this.token.balanceOf(accountA)).to.be.bignumber.equal(firstWithdraw);
 
         await expectEvent.inTransaction(
           receipt.tx,
           this.token,
           'Transfer',
-          { from: this.allocations.address, to: accountA, value: amount },
+          { from: this.allocations.address, to: accountA, value: firstWithdraw },
         );
         await expectEvent.inTransaction(
           receipt.tx,
           this.allocations,
           'Withdrew',
-          { from: accountA, to: accountA, value: amount, remainingBalance: new BN(0) },
+          { from: accountA, to: accountA, value: firstWithdraw, remainingBalance: depositAmount.sub(firstWithdraw) },
         );
+        expect(await this.allocations.accountsCount()).to.be.bignumber.equal('1');
+
+        // second withdraw
+        receipt = await this.allocations.withdraw(accountA, secondWithdraw, { from: accountA });
+        expect(await this.token.balanceOf(this.allocations.address)).to.be.bignumber.equal('0');
+        expect(await this.token.balanceOf(accountA)).to.be.bignumber.equal(depositAmount);
+
+        await expectEvent.inTransaction(
+          receipt.tx,
+          this.token,
+          'Transfer',
+          { from: this.allocations.address, to: accountA, value: secondWithdraw },
+        );
+        await expectEvent.inTransaction(
+          receipt.tx,
+          this.allocations,
+          'Withdrew',
+          { from: accountA, to: accountA, value: secondWithdraw, remainingBalance: new BN(0) },
+        );
+        expect(await this.allocations.accountsCount()).to.be.bignumber.equal('0');
       });
 
       it('only the owner can withdraw its funds', async function () {
+        await this.token.approve(this.allocations.address, MAX_UINT256, { from: accountA });
+        await this.allocations.deposit(accountA, '100', { from: accountA });
+
         await expectRevert(
-          this.allocations.withdraw(accountA, '100', { from: accountB }),
+          this.allocations.withdraw(accountA, '101', { from: accountA }),
+          'Allocations: withdraw amount exceeds sender\'s allocated balance',
+        );
+
+        await expectRevert(
+          this.allocations.withdraw(accountA, '1', { from: accountB }),
           'Allocations: withdraw amount exceeds sender\'s allocated balance',
         );
       });
 
       it('prevent withdraw after freeze delay', async function () {
+        await this.token.approve(this.allocations.address, MAX_UINT256, { from: accountA });
+        await this.allocations.deposit(accountA, '100', { from: accountA });
+
         const targetBlock = await this.allocations.freezeDelay();
         await time.advanceBlockTo(targetBlock);
 
