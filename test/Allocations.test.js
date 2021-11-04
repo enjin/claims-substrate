@@ -123,7 +123,7 @@ contract('Allocations', function (accounts) {
           receipt.tx,
           this.allocations,
           'Deposited',
-          { from: accountA, to: accountA, amount, newTotal: amount },
+          { from: accountA, to: accountA, value: amount, remainingBalance: amount },
         );
       });
 
@@ -167,7 +167,7 @@ contract('Allocations', function (accounts) {
           receipt.tx,
           this.allocations,
           'Withdrew',
-          { from: accountA, to: accountA, amount, newTotal: new BN(0) },
+          { from: accountA, to: accountA, value: amount, remainingBalance: new BN(0) },
         );
       });
 

@@ -26,9 +26,9 @@ contract Allocations is Initializable, OwnableUpgradeable {
     uint256 private _freezeDelay;
 
     // Event for when an allocation address received a deposit
-    event Deposited(address indexed from, address indexed to, uint256 amount, uint256 newTotal);
+    event Deposited(address indexed from, address indexed to, uint256 value, uint256 remainingBalance);
     // Event for when an allocation address withdraws.
-    event Withdrew(address indexed from, address indexed to, uint256 amount, uint256 newTotal);
+    event Withdrew(address indexed from, address indexed to, uint256 value, uint256 remainingBalance);
 
     // solhint-disable-next-line func-name-mixedcase
     function Allocations_init(address token, uint256 freezeDelay_) external initializer {
