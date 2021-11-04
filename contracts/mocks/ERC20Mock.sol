@@ -2,16 +2,40 @@
 
 pragma solidity ^0.8.3;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 // mock class using ERC20
-contract ERC20Mock is ERC20 {
+contract ERC20Mock is Initializable, ERC20Upgradeable {
+
     constructor(
         string memory name,
         string memory symbol,
         address initialAccount,
         uint256 initialBalance
-    ) payable ERC20(name, symbol) {
+    ) initializer {
+        __Context_init_unchained();
+        __ERC20_init_unchained(name, symbol);
+        __ERC20Mock_init_unchained(name, symbol, initialAccount, initialBalance);
+    }
+
+    function __ERC20Mock_init(
+        string memory name,
+        string memory symbol,
+        address initialAccount,
+        uint256 initialBalance
+    ) internal initializer {
+        __Context_init_unchained();
+        __ERC20_init_unchained(name, symbol);
+        __ERC20Mock_init_unchained(name, symbol, initialAccount, initialBalance);
+    }
+
+    function __ERC20Mock_init_unchained(
+        string memory name,
+        string memory symbol,
+        address initialAccount,
+        uint256 initialBalance
+    ) internal initializer {
         _mint(initialAccount, initialBalance);
     }
 
@@ -38,4 +62,6 @@ contract ERC20Mock is ERC20 {
     ) public {
         _approve(owner, spender, value);
     }
+
+    uint256[50] private __gap;
 }

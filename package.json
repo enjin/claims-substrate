@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/enjin/claims-substrate#readme",
   "dependencies": {
-    "@openzeppelin/contracts": "^4.3.2"
+    "@openzeppelin/contracts-upgradeable": "^4.3.2"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-truffle5": "^2.0.0",

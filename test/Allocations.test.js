@@ -24,28 +24,32 @@ contract('Allocations', function (accounts) {
     it('initializes correctly', async function () {
       const freezeDelay = await getFreezeDelay();
       const token = await ERC20Mock.new(name, symbol, initialHolder, initialSupply);
-      const allocations = await Allocations.new(token.address, freezeDelay, { from: owner });
+      const allocations = await Allocations.new();
+      const receipt = await allocations.Allocations_init(token.address, freezeDelay, { from: owner });
+
 
       expect(await allocations.freezeDelay()).to.be.bignumber.equal(freezeDelay);
 
-      await expectEvent.inConstruction(
-        allocations,
+      await expectEvent(
+        receipt,
         'OwnershipTransferred',
         { previousOwner: ZERO_ADDRESS, newOwner: owner },
       );
     });
 
     it('reverts if token is not a contract', async function () {
+      const allocations = await Allocations.new();
       await expectRevert(
-        Allocations.new(accountA, setUpDelay),
+        allocations.Allocations_init(accountA, setUpDelay),
         'Allocations: Must be an ERC20 contract',
       );
     });
 
     it('prevents invalid freeze delay', async function () {
       const token = await ERC20Mock.new(name, symbol, initialHolder, initialSupply);
+      const allocations = await Allocations.new();
       await expectRevert(
-        Allocations.new(token.address, '0'),
+        allocations.Allocations_init(token.address, '0'),
         'Allocations: freezeDelay must be greater than the current block.number',
       );
     });
@@ -55,7 +59,8 @@ contract('Allocations', function (accounts) {
     beforeEach(async function () {
       this.token = await ERC20Mock.new(name, symbol, initialHolder, initialSupply);
       this.freezeDelay = await getFreezeDelay();
-      this.allocations = await Allocations.new(this.token.address, this.freezeDelay, { from: owner });
+      this.allocations = await Allocations.new();
+      await this.allocations.Allocations_init(this.token.address, this.freezeDelay, { from: owner });
     });
 
     it('#owner', async function () {
@@ -73,6 +78,28 @@ contract('Allocations', function (accounts) {
       await this.allocations.deposit(accountA, amount, { from: accountA });
       expect(await this.allocations.balanceOf(accountA)).to.be.bignumber.equal(amount);
       expect(await this.allocations.balanceOf(accountB)).to.be.bignumber.equal(new BN(0));
+    });
+
+    it('#accountsCount', async function () {
+      expect(await this.allocations.accountsCount()).to.be.bignumber.equal('0');
+      const amount = new BN(123);
+      await this.token.transfer(accountA, amount, { from: initialHolder });
+      await this.token.approve(this.allocations.address, MAX_UINT256, { from: accountA });
+      await this.allocations.deposit(accountA, amount, { from: accountA });
+      expect(await this.allocations.accountsCount()).to.be.bignumber.equal('1');
+      await this.allocations.withdraw(accountA, amount, { from: accountA });
+      expect(await this.allocations.accountsCount()).to.be.bignumber.equal('0');
+    });
+
+    it('#accountAt', async function () {
+      const amount = new BN(123);
+      await this.token.transfer(accountA, amount, { from: initialHolder });
+      await this.token.approve(this.allocations.address, MAX_UINT256, { from: accountA });
+      await this.allocations.deposit(accountA, amount, { from: accountA });
+
+      const { 0: address, 1: balance } = await this.allocations.accountAt('0');
+      expect(address).to.be.equal(accountA);
+      expect(balance).to.be.bignumber.equal(amount);
     });
 
     describe('#deposit', function () {
@@ -97,7 +124,7 @@ contract('Allocations', function (accounts) {
           receipt.tx,
           this.allocations,
           'Deposited',
-          { operator: accountA, to: accountA, amount, newTotal: amount },
+          { from: accountA, to: accountA, amount, newTotal: amount },
         );
       });
 
@@ -140,7 +167,7 @@ contract('Allocations', function (accounts) {
         await expectEvent.inTransaction(
           receipt.tx,
           this.allocations,
-          'Withdraw',
+          'Withdrew',
           { from: accountA, to: accountA, amount, newTotal: new BN(0) },
         );
       });
